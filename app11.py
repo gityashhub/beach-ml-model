@@ -1,159 +1,258 @@
-import streamlit as st
-import pandas as pd
-import numpy as np
-import seaborn as sns
-import matplotlib.pyplot as plt
-
-from sklearn.preprocessing import LabelEncoder
-from sklearn.model_selection import train_test_split
-from sklearn.ensemble import RandomForestClassifier
-
-# App Title
-st.title("🌊 Coastal Tourism Suitability Predictor")
-st.markdown("Upload your dataset to train a model and predict tourism safety with confidence level.")
-
-# Upload Dataset
-uploaded_file = st.file_uploader("📂 Upload Coastal Tourism Dataset (.csv)", type=["csv"])
-if uploaded_file is not None:
-    df = pd.read_csv(uploaded_file)
-
-    st.subheader("📊 Raw Dataset")
-    st.dataframe(df.head())
-
-    # Dataset Overview
-    st.subheader("📋 Data Summary")
-    st.write("Shape:", df.shape)
-    st.write("Missing Values:\n", df.isnull().sum())
-
-    # Target Visualization
-    st.subheader("📈 Suitability Distribution")
-    fig, ax = plt.subplots()
-    sns.countplot(x="Suitability", data=df, ax=ax)
-    st.pyplot(fig)
-
-    # Preprocessing
-    st.subheader("⚙️ Preprocessing")
-    df = pd.get_dummies(df, columns=["Beach", "Weather_Condition"])
-    label_encoder = LabelEncoder()
-    df["Suitability"] = label_encoder.fit_transform(df["Suitability"])
-
-    X = df.drop(columns=["Suitability"])
-    y = df["Suitability"]
-
-    # Train/Test Split
-    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
-
-    # Model Training
-    model = RandomForestClassifier(n_estimators=100, random_state=42)
-    model.fit(X_train, y_train)
-    acc = model.score(X_test, y_test)
-
-    st.success(f"✅ Model trained successfully with accuracy: **{acc:.2f}**")
-
-    # User Input for Prediction
-    st.subheader("🧪 Predict Suitability")
-    st.markdown("Fill in the feature values below:")
-
-    user_input = {}
-    for col in X.columns:
-        if set(df[col].unique()) == {0, 1}:
-            user_input[col] = st.selectbox(col, [0, 1])
-        else:
-            user_input[col] = st.number_input(col, float(df[col].min()), float(df[col].max()), float(df[col].mean()))
-
-    input_df = pd.DataFrame([user_input])
-
-    if st.button("Predict"):
-        prediction = model.predict(input_df)[0]
-        probabilities = model.predict_proba(input_df)[0]
-        predicted_label = label_encoder.inverse_transform([prediction])[0]
-        confidence = np.max(probabilities) * 100
-
-        st.success(f"🎯 Predicted Suitability: **{predicted_label}**")
-        st.info(f"📊 Confidence Level: **{confidence:.2f}%**")
-
-        # Show all class probabilities (optional)
-        st.subheader("📍 Class Probabilities")
-        prob_df = pd.DataFrame({
-            "Class": label_encoder.inverse_transform(np.arange(len(probabilities))),
-            "Probability (%)": (probabilities * 100).round(2)
-        })
-        st.dataframe(prob_df)
-
-else:
-    st.warning("👈 Please upload a CSV file to begin.")
-
-
 # import streamlit as st
+# import joblib
 # import numpy as np
-# import pandas as pd
-# import tensorflow as tf
-# from sklearn.preprocessing import StandardScaler
+# import requests
 
-# # === Load model ===
-# @st.cache_resource
-# def load_model():
-#     return tf.keras.models.load_model("beach_safety_model.h5")
+# # Load the model
+# model = joblib.load('beach_safety_model (1).pkl')
 
-# model = load_model()
+# # Manual wind direction encoding (use actual encoder if available)
+# wind_dir_map = {'N': 0, 'NE': 1, 'E': 2, 'SE': 3, 'S': 4, 'SW': 5, 'W': 6, 'NW': 7}
 
-# # === Categories from dataset (adjust if needed) ===
-# BEACHES = ['Bondi', 'Copacabana', 'Waikiki', 'Santa Monica']
-# WEATHER_CONDITIONS = ['Sunny', 'Cloudy', 'Rainy', 'Stormy']
+# # Convert degrees to compass direction
+# def deg_to_compass(deg):
+#     directions = ['N', 'NE', 'E', 'SE', 'S', 'SW', 'W', 'NW']
+#     idx = int((deg + 22.5) / 45.0) % 8
+#     return directions[idx]
 
-# # === The exact 18 features used during model training ===
-# expected_columns = [
-#     'Temperature', 'Wind_Speed', 'Wave_Height', 'UV_Index', 'Tide_Level',
-#     'Beach_Bondi', 'Beach_Copacabana', 'Beach_Waikiki', 'Beach_Santa Monica',
-#     'Weather_Condition_Sunny', 'Weather_Condition_Cloudy',
-#     'Weather_Condition_Rainy', 'Weather_Condition_Stormy',
-#     'Extra_Feature_1', 'Extra_Feature_2', 'Extra_Feature_3',
-#     'Extra_Feature_4', 'Extra_Feature_5'  # 👈 Replace with your real column names
-# ]
+# # Fetch real-time weather from OpenWeatherMap
+# def fetch_weather_data(api_key, lat, lon):
+#     url = f"https://api.openweathermap.org/data/2.5/weather?lat={lat}&lon={lon}&appid={api_key}&units=metric"
+#     response = requests.get(url)
+#     data = response.json()
 
-# # === Streamlit UI ===
-# st.title("🏖️ Beach Safety Prediction App")
-# st.write("Enter the current environmental conditions to predict safety status:")
+#     temperature = data['main']['temp']
+#     humidity = data['main']['humidity']
+#     wind_speed = data['wind']['speed'] * 3.6  # m/s to km/h
+#     wind_dir = deg_to_compass(data['wind']['deg'])
+#     visibility = data.get('visibility', 8000) / 1000
+#     rainfall = data.get('rain', {}).get('1h', 0)
 
-# # User inputs
-# temperature = st.slider("Temperature (°C)", 0.0, 45.0, 25.0)
-# wind_speed = st.slider("Wind Speed (km/h)", 0.0, 100.0, 15.0)
-# wave_height = st.slider("Wave Height (m)", 0.0, 5.0, 1.0)
-# uv_index = st.slider("UV Index", 0.0, 11.0, 6.0)
-# tide_level = st.slider("Tide Level (m)", 0.0, 3.0, 1.2)
-# beach = st.selectbox("Select Beach", BEACHES)
-# weather = st.selectbox("Weather Condition", WEATHER_CONDITIONS)
+#     # Placeholder values (can be replaced with marine APIs)
+#     wave_height = 1.0
+#     tide_level = 1.0
+#     uv_index = 5
 
-# # === Prediction ===
-# if st.button("Predict"):
-#     # Create input dataframe
-#     input_data = pd.DataFrame([{
-#         'Temperature': temperature,
-#         'Wind_Speed': wind_speed,
-#         'Wave_Height': wave_height,
-#         'UV_Index': uv_index,
-#         'Tide_Level': tide_level,
-#         'Beach': beach,
-#         'Weather_Condition': weather
-#     }])
+#     return {
+#         "temperature": temperature,
+#         "humidity": humidity,
+#         "wind_speed": wind_speed,
+#         "wind_direction": wind_dir,
+#         "wave_height": wave_height,
+#         "tide_level": tide_level,
+#         "visibility": visibility,
+#         "rainfall": rainfall,
+#         "uv_index": uv_index
+#     }
 
-#     # One-hot encoding
-#     input_data = pd.get_dummies(input_data, columns=['Beach', 'Weather_Condition'])
+# # Predict function
+# def predict_beach_safety(data):
+#     wind_encoded = wind_dir_map[data['wind_direction']]
+#     features = np.array([[data['temperature'], data['humidity'], data['wind_speed'],
+#                           wind_encoded, data['wave_height'], data['tide_level'],
+#                           data['visibility'], data['rainfall'], data['uv_index']]])
+#     prediction = model.predict(features)[0]
+#     return prediction
 
-#     # Add missing columns with 0
-#     for col in expected_columns:
-#         if col not in input_data.columns:
-#             input_data[col] = 0
+# # App UI
+# st.title("🏖️ Beach Safety Predictor")
+# mode = st.radio("Choose prediction mode:", ["📝 Manual Input", "🌐 Real-Time Weather"])
 
-#     # Reorder columns to match model
-#     input_data = input_data[expected_columns]
+# if mode == "📝 Manual Input":
+#     st.subheader("Enter Beach Conditions")
 
-#     # Debug shape check
-#     st.caption(f"🧪 Input shape: {input_data.shape} (Model expects 18)")
+#     temperature = st.number_input("🌡️ Temperature (°C)", 0.0, 50.0, 28.0)
+#     humidity = st.number_input("💧 Humidity (%)", 0.0, 100.0, 70.0)
+#     wind_speed = st.number_input("💨 Wind Speed (km/h)", 0.0, 100.0, 15.0)
+#     wind_direction = st.selectbox("🧭 Wind Direction", list(wind_dir_map.keys()))
+#     wave_height = st.number_input("🌊 Wave Height (m)", 0.0, 10.0, 1.2)
+#     tide_level = st.number_input("🌊 Tide Level (m)", 0.0, 5.0, 0.8)
+#     visibility = st.number_input("👁️ Visibility (km)", 0.0, 20.0, 8.0)
+#     rainfall = st.number_input("🌧️ Rainfall (mm)", 0.0, 100.0, 0.0)
+#     uv_index = st.number_input("☀️ UV Index", 0.0, 15.0, 7.0)
 
-#     # Predict
-#     prediction = model.predict(input_data)[0][0]
-#     if prediction > 0.5:
-#         st.success(f"✅ SAFE for beach activities! (Confidence: {prediction:.2f})")
-#     else:
-#         st.error(f"⚠️ NOT SAFE today. (Confidence: {prediction:.2f})")
+#     if st.button("🔍 Predict Safety"):
+#         data = {
+#             "temperature": temperature,
+#             "humidity": humidity,
+#             "wind_speed": wind_speed,
+#             "wind_direction": wind_direction,
+#             "wave_height": wave_height,
+#             "tide_level": tide_level,
+#             "visibility": visibility,
+#             "rainfall": rainfall,
+#             "uv_index": uv_index
+#         }
+#         result = predict_beach_safety(data)
+#         if result == 1:
+#             st.success("✅ The beach is SAFE to visit!")
+#         else:
+#             st.error("⚠️ The beach is NOT safe to visit!")
+
+# elif mode == "🌐 Real-Time Weather":
+#     st.subheader("🌦️ Fetch live weather data")
+#     lat = st.number_input("📍 Latitude", value=19.0760)
+#     lon = st.number_input("📍 Longitude", value=72.8777)
+#     api_key = st.text_input("🔑 OpenWeatherMap API Key", type="password")
+
+#     if st.button("⚡ Fetch & Predict"):
+#         if api_key:
+#             try:
+#                 data = fetch_weather_data(api_key, lat, lon)
+#                 st.write("📊 Live Weather Data:", data)
+#                 result = predict_beach_safety(data)
+#                 if result == 1:
+#                     st.success("✅ The beach is SAFE to visit!")
+#                 else:
+#                     st.error("⚠️ The beach is NOT safe to visit!")
+#             except Exception as e:
+#                 st.error(f"Error fetching data: {e}")
+#         else:
+#             st.warning("Please enter a valid API key.")
+
+
+
+import streamlit as st
+import joblib
+import numpy as np
+import requests
+
+# Load the model
+model = joblib.load('beach_safety_model (1).pkl')
+
+# Wind direction mapping
+wind_dir_map = {'N': 0, 'NE': 1, 'E': 2, 'SE': 3, 'S': 4, 'SW': 5, 'W': 6, 'NW': 7}
+def deg_to_compass(deg):
+    directions = list(wind_dir_map.keys())
+    idx = int((deg + 22.5) / 45.0) % 8
+    return directions[idx]
+
+# Fetch weather data
+def fetch_weather_data(api_key, lat, lon):
+    url = f"https://api.openweathermap.org/data/2.5/weather?lat={lat}&lon={lon}&appid={api_key}&units=metric"
+    response = requests.get(url)
+    
+    if response.status_code != 200:
+        raise ValueError(f"API returned status code {response.status_code}")
+    
+    data = response.json()
+    try:
+        temperature = data['main']['temp']
+        humidity = data['main']['humidity']
+        wind_speed = data['wind']['speed'] * 3.6  # m/s to km/h
+        wind_deg = data['wind']['deg']
+        wind_dir = deg_to_compass(wind_deg)
+        visibility = data.get('visibility', 8000) / 1000
+        rainfall = data.get('rain', {}).get('1h', 0)
+
+        # Placeholder marine data
+        wave_height = 1.0
+        tide_level = 1.0
+        uv_index = 5
+
+        return {
+            "temperature": temperature,
+            "humidity": humidity,
+            "wind_speed": wind_speed,
+            "wind_direction": wind_dir,
+            "wave_height": wave_height,
+            "tide_level": tide_level,
+            "visibility": visibility,
+            "rainfall": rainfall,
+            "uv_index": uv_index
+        }
+    except KeyError as e:
+        raise ValueError(f"Missing key in API response: {e}")
+
+# Prediction function
+def predict_beach_safety(data):
+    wind_encoded = wind_dir_map.get(data['wind_direction'], 0)
+    features = np.array([[data['temperature'], data['humidity'], data['wind_speed'],
+                          wind_encoded, data['wave_height'], data['tide_level'],
+                          data['visibility'], data['rainfall'], data['uv_index']]])
+    return model.predict(features)[0]
+
+# UI
+st.set_page_config(page_title="Beach Safety Predictor", page_icon="🏖️")
+st.title("🏖️ Beach Safety Predictor")
+background_url = "https://images.unsplash.com/photo-1507525428034-b723cf961d3e"
+st.markdown(
+    f"""
+    <style>
+    .stApp {{
+        background-image: url("{background_url}");
+        background-size: cover;
+        background-position: center;
+        background-attachment: fixed;
+        font-family: 'Segoe UI', sans-serif;
+    }}
+
+    /* Apply translucent card style */
+    .block-container {{
+        background-color: rgba(255, 255, 255, 0.75);
+        padding: 2rem 1rem;
+        border-radius: 15px;
+        backdrop-filter: blur(10px);
+        -webkit-backdrop-filter: blur(10px);
+        box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.25);
+        margin: 2rem;
+    }}
+
+    h1 {{
+        color: #0d3b66;
+        text-shadow: 1px 1px 2px white;
+    }}
+    </style>
+    """,
+    unsafe_allow_html=True
+)
+st.caption("Predict if the beach is safe based on manual data or real-time weather info.")
+
+mode = st.radio("Choose mode:", ["📝 Manual Input", "🌐 Real-Time Weather"])
+
+if mode == "📝 Manual Input":
+    st.subheader("🔧 Enter Beach Conditions Manually")
+    temperature = st.number_input("🌡️ Temperature (°C)", 0.0, 50.0, 28.0)
+    humidity = st.number_input("💧 Humidity (%)", 0.0, 100.0, 70.0)
+    wind_speed = st.number_input("💨 Wind Speed (km/h)", 0.0, 100.0, 15.0)
+    wind_direction = st.selectbox("🧭 Wind Direction", list(wind_dir_map.keys()))
+    wave_height = st.number_input("🌊 Wave Height (m)", 0.0, 10.0, 1.2)
+    tide_level = st.number_input("🌊 Tide Level (m)", 0.0, 5.0, 0.8)
+    visibility = st.number_input("👁️ Visibility (km)", 0.0, 20.0, 8.0)
+    rainfall = st.number_input("🌧️ Rainfall (mm)", 0.0, 100.0, 0.0)
+    uv_index = st.number_input("☀️ UV Index", 0.0, 15.0, 7.0)
+
+    if st.button("🔍 Predict"):
+        data = {
+            "temperature": temperature,
+            "humidity": humidity,
+            "wind_speed": wind_speed,
+            "wind_direction": wind_direction,
+            "wave_height": wave_height,
+            "tide_level": tide_level,
+            "visibility": visibility,
+            "rainfall": rainfall,
+            "uv_index": uv_index
+        }
+        result = predict_beach_safety(data)
+        st.subheader("🔎 Prediction Result")
+        st.success("✅ Beach is SAFE to visit!" if result == 1 else "⚠️ Beach is NOT safe to visit!")
+
+elif mode == "🌐 Real-Time Weather":
+    st.subheader("🌦️ Use Live Weather Data")
+    lat = st.number_input("📍 Latitude", value=19.0760)
+    lon = st.number_input("📍 Longitude", value=72.8777)
+    api_key = st.text_input("🔑 OpenWeatherMap API Key", type="password")
+
+    if st.button("⚡ Fetch & Predict"):
+        if not api_key:
+            st.warning("Please provide a valid OpenWeatherMap API key.")
+        else:
+            try:
+                data = fetch_weather_data(api_key, lat, lon)
+                st.json(data)
+                result = predict_beach_safety(data)
+                st.subheader("🔎 Prediction Result")
+                st.success("✅ Beach is SAFE to visit!" if result == 1 else "⚠️ Beach is NOT safe to visit!")
+            except Exception as e:
+                st.error(f"❌ Error: {e}")
