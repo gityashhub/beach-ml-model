@@ -60,38 +60,135 @@ def predict_beach_safety(data):
 
 # UI
 st.set_page_config(page_title="Beach Safety Predictor", page_icon="🏖️")
+
 st.title("🏖️ Beach Safety Predictor")
 background_url = "https://images.unsplash.com/photo-1507525428034-b723cf961d3e"
-st.markdown(
-    f"""
-    <style>
-    .stApp {{
-        background-image: url("{background_url}");
-        background-size: cover;
-        background-position: center;
-        background-attachment: fixed;
-        font-family: 'Segoe UI', sans-serif;
-    }}
+st.markdown("""
+<style>
+/* App background */
+.stApp {
+    background-image: url('https://images.unsplash.com/photo-1507525428034-b723cf961d3e');
+    background-size: cover;
+    background-position: center;
+    background-attachment: fixed;
+    font-family: 'Segoe UI', sans-serif;
+    font-weight: bold;
+    color: #003b49;
+}
 
-    /* Apply translucent card style */
-    .block-container {{
-        background-color: rgba(255, 255, 255, 0.75);
-        padding: 2rem 1rem;
-        border-radius: 15px;
-        backdrop-filter: blur(10px);
-        -webkit-backdrop-filter: blur(10px);
-        box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.25);
-        margin: 2rem;
-    }}
+/* Glass effect container */
+.main-container {
+    background: rgba(255, 255, 255, 0.88);
+    border-radius: 1.5rem;
+    padding: 2.5rem;
+    box-shadow: 0 12px 32px rgba(0, 0, 0, 0.25);
+    backdrop-filter: blur(10px);
+    max-width: 780px;
+    margin: 2rem auto;
+}
 
-    h1 {{
-        color: #0d3b66;
-        text-shadow: 1px 1px 2px white;
-    }}
-    </style>
-    """,
-    unsafe_allow_html=True
-)
+/* Title */
+h1 {
+    text-align: center;
+    color: #004e64;
+    font-size: 3rem;
+    font-weight: bold;
+    margin-bottom: 1rem;
+}
+
+/* Subtitles */
+h2, h3, h4 {
+    font-size: 1.5rem !important;
+    font-weight: bold !important;
+    color: #006c80 !important;
+}
+
+/* Caption style */
+.stMarkdown p {
+    font-size: 1.1rem !important;
+    font-weight: bold !important;
+    color: #003b49 !important;
+    margin-bottom: 0.5rem;
+}
+
+/* Label common style */
+label, .stSelectbox label, .stNumberInput label, .stTextInput label {
+    font-size: 1.1rem !important;
+    font-weight: bold !important;
+    color: #003b49 !important;
+    margin-bottom: 0.3rem;
+}
+
+/* Inputs styling */
+input, .stTextInput input, .stNumberInput input, .stPassword input {
+    font-size: 1.05rem !important;
+    font-weight: bold !important;
+    background-color: rgba(255, 255, 255, 0.9);
+    border-radius: 0.5rem;
+    padding: 0.5rem;
+    color: #003b49 !important;
+}
+
+# /* Select box styling */
+# .stSelectbox div {
+#     font-size: 1.05rem !important;
+#     font-weight: bold !important;
+#     color: #003b49 !important;
+#     background-color: rgba(255, 255, 255, 0.85);
+#     border-radius: 0.5rem !important;
+#     padding: 0.4rem;
+# }
+
+/* Radio buttons label */
+.stRadio label {
+    font-size: 1.1rem !important;
+    font-weight: bold !important;
+    color: #004e64;
+}
+
+/* Button style */
+.stButton > button {
+    background-color: #0096a3;
+    color: white;
+    font-weight: bold;
+    font-size: 1.1rem;
+    padding: 0.6rem 1.2rem;
+    border: none;
+    border-radius: 0.8rem;
+    transition: all 0.3s ease;
+    margin-top: 1rem;
+}
+
+.stButton > button:hover {
+    background-color: #007d8a;
+    transform: scale(1.02);
+}
+
+/* Result success box */
+.stAlert-success {
+    background-color: #d4f4dd !important;
+    color: #006c3f !important;
+    border-left: 5px solid #30c769 !important;
+}
+
+/* Result error box */
+.stAlert-error {
+    background-color: #ffe0e0 !important;
+    color: #a80000 !important;
+    border-left: 5px solid #ff4d4d !important;
+}
+
+/* Align everything centrally */
+.block-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+</style>
+""", unsafe_allow_html=True)
+
+
+
 st.caption("Predict if the beach is safe based on manual data or real-time weather info.")
 
 mode = st.radio("Choose mode:", ["📝 Manual Input", "🌐 Real-Time Weather"])
@@ -142,4 +239,3 @@ elif mode == "🌐 Real-Time Weather":
                 st.success("✅ Beach is SAFE to visit!" if result == 1 else "⚠️ Beach is NOT safe to visit!")
             except Exception as e:
                 st.error(f"❌ Error: {e}")
-
